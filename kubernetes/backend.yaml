@@ -12,15 +12,18 @@ spec:
       app: backend
   template:
     metadata:
-      name: backend
       labels:
         app: backend
     spec:
       containers:
         - name: backend
-          image: trainwithshubham/wanderlust-backend-beta:v2.1
+          image: devendra532/wanderlust-backend-beta:v2.1  # Updated with your Docker Hub username
           ports:
             - containerPort: 8080
+          env:
+            - name: BACKEND_ENV
+              value: "production"
+
 ---
 apiVersion: v1
 kind: Service
@@ -36,3 +39,4 @@ spec:
       targetPort: 8080
       protocol: TCP
       nodePort: 31100
+
