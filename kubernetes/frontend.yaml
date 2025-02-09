@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: trainwithshubham/wanderlust-frontend-beta:v2.2  # Using Shubham's Docker image
+          image: trainwithshubham/wanderlust-frontend-beta:v2.2
           ports:
             - containerPort: 5173
           env:
