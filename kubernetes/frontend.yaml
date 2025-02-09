@@ -1,38 +1,47 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: backend-deployment
+  name: frontend-deployment
   namespace: wanderlust
   labels:
-    app: backend
+    app: frontend
+    owner: devendra532  # Personalized label
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: backend
+      app: frontend
   template:
     metadata:
-      name: backend
+      name: frontend
       labels:
-        app: backend
+        app: frontend
+        managed-by: devendra532  # Added label for personalization
     spec:
       containers:
-        - name: backend
-          image: trainwithshubham/wanderlust-backend-beta:v2.1  # Using Shubham's image
+        - name: frontend
+          image: trainwithshubham/wanderlust-frontend-beta:v2.2  # Using Shubham's Docker image
           ports:
-            - containerPort: 8080
+            - containerPort: 5173
+          env:
+            - name: OWNER
+              value: "devendra532"  # Example: Personalizing environment variables
+            - name: DEPLOYED_BY
+              value: "TDevendra532"  # Added your GitHub username
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: backend-service
+  name: frontend-service
   namespace: wanderlust
+  labels:
+    service-owner: devendra532  # Custom label for tracking
 spec:
   type: NodePort
   selector:
-    app: backend
+    app: frontend
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 5173
+      targetPort: 5173
       protocol: TCP
-      nodePort: 31100
+      nodePort: 31000
