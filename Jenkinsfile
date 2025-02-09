@@ -1,128 +1,111 @@
 @Library('SharedLib') _
+
 pipeline {
     agent any
-    
-    environment{
-        SONAR_HOME = tool "Sonar"
-    }
-    
+
     parameters {
-        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
-        string(name: 'BACKEND_DOCKER_TAG', defaultValue: '', description: 'Setting docker image for latest push')
+        string(name: 'FRONTEND_DOCKER_TAG', defaultValue: 'trainwithshubham/wanderlust-frontend-beta:v2.2', description: 'Frontend Docker tag')
+        string(name: 'BACKEND_DOCKER_TAG', defaultValue: 'trainwithshubham/wanderlust-backend-beta:v2.1', description: 'Backend Docker tag')
     }
-    
+
     stages {
-        stage("Validate Parameters") {
+        stage("Workspace cleanup") {
             steps {
                 script {
-                    if (params.FRONTEND_DOCKER_TAG == '' || params.BACKEND_DOCKER_TAG == '') {
-                        error("FRONTEND_DOCKER_TAG and BACKEND_DOCKER_TAG must be provided.")
-                    }
-                }
-            }
-        }
-        stage("Workspace cleanup"){
-            steps{
-                script{
                     cleanWs()
                 }
             }
         }
-        
+
         stage('Git: Code Checkout') {
             steps {
-                script{
-                    code_checkout("https://github.com/TDevendra532/Wanderlust-Mega-Project.git","main")  // Your GitHub Repo
-                }
-            }
-        }
-        
-        stage("Trivy: Filesystem scan"){
-            steps{
-                script{
-                    trivy_scan()
+                script {
+                    code_checkout("https://github.com/TDevendra532/Wanderlust-Mega-Project.git", "main")
                 }
             }
         }
 
-        stage("OWASP: Dependency check"){
-            steps{
-                script{
-                    owasp_dependency()
+        stage('Verify: Docker Image Tags') {
+            steps {
+                script {
+                    echo "Using Shubham's Docker Images:"
+                    echo "FRONTEND_DOCKER_TAG: ${params.FRONTEND_DOCKER_TAG}"
+                    echo "BACKEND_DOCKER_TAG: ${params.BACKEND_DOCKER_TAG}"
                 }
             }
         }
-        
-        stage("SonarQube: Code Analysis"){
-            steps{
-                script{
-                    sonarqube_analysis("Sonar","wanderlust","wanderlust")
-                }
-            }
-        }
-        
-        stage("SonarQube: Code Quality Gates"){
-            steps{
-                script{
-                    sonarqube_code_quality()
-                }
-            }
-        }
-        
-        stage('Exporting environment variables') {
-            parallel{
-                stage("Backend env setup"){
-                    steps {
-                        script{
-                            dir("Automations"){
-                                sh "bash updatebackendnew.sh"
-                            }
-                        }
-                    }
-                }
-                
-                stage("Frontend env setup"){
-                    steps {
-                        script{
-                            dir("Automations"){
-                                sh "bash updatefrontendnew.sh"
-                            }
-                        }
+
+        stage("Update: Kubernetes manifests") {
+            steps {
+                script {
+                    dir('kubernetes') {
+                        sh """
+                            sed -i -e 's|image: .*trainwithshubham/wanderlust-backend-beta:.*|image: ${params.BACKEND_DOCKER_TAG}|' backend.yaml
+                        """
+                        sh """
+                            sed -i -e 's|image: .*trainwithshubham/wanderlust-frontend-beta:.*|image: ${params.FRONTEND_DOCKER_TAG}|' frontend.yaml
+                        """
                     }
                 }
             }
         }
-        
-        stage("Docker: Build Images"){
-            steps{
-                script{
-                        dir('backend'){
-                            docker_build("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","devendra532") // Pushing to Your DockerHub
-                        }
-                    
-                        dir('frontend'){
-                            docker_build("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","devendra532") // Pushing to Your DockerHub
-                        }
-                }
-            }
-        }
-        
-        stage("Docker: Push to DockerHub"){
-            steps{
-                script{
-                    docker_push("wanderlust-backend-beta","${params.BACKEND_DOCKER_TAG}","devendra532")  // Your DockerHub
-                    docker_push("wanderlust-frontend-beta","${params.FRONTEND_DOCKER_TAG}","devendra532")  // Your DockerHub
+
+        stage("Git: Code update and push to GitHub") {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'github-cred', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                        sh '''
+                        git config --global user.email "devendratalhande726@gmail.com"
+                        git config --global user.name "$GIT_USERNAME"
+
+                        git status
+                        git add .
+
+                        git commit -m "Updated Kubernetes manifests with latest image tags" || echo "No changes to commit"
+
+                        git push https://$GIT_USERNAME:$GIT_PASSWORD@github.com/TDevendra532/Wanderlust-Mega-Project.git main
+                        '''
+                    }
                 }
             }
         }
     }
-    post{
-        success{
-            archiveArtifacts artifacts: '*.xml', followSymlinks: false
-            build job: "Wanderlust-CD", parameters: [
-                string(name: 'FRONTEND_DOCKER_TAG', value: "${params.FRONTEND_DOCKER_TAG}"),
-                string(name: 'BACKEND_DOCKER_TAG', value: "${params.BACKEND_DOCKER_TAG}")
-            ]
+
+    post {
+        success {
+            script {
+                emailext attachLog: true,
+                from: 'devendratalhande726@gmail.com',
+                subject: "Wanderlust Application Updated & Deployed - '${currentBuild.result}'",
+                body: """
+                    <html>
+                    <body>
+                        <p><strong>Project:</strong> ${env.JOB_NAME}</p>
+                        <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                        <p><strong>URL:</strong> ${env.BUILD_URL}</p>
+                    </body>
+                    </html>
+                """,
+                to: 'devendratalhande726@gmail.com',
+                mimeType: 'text/html'
+            }
+        }
+        failure {
+            script {
+                emailext attachLog: true,
+                from: 'devendratalhande726@gmail.com',
+                subject: "Wanderlust Application Build Failed - '${currentBuild.result}'",
+                body: """
+                    <html>
+                    <body>
+                        <p><strong>Project:</strong> ${env.JOB_NAME}</p>
+                        <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
+                    </body>
+                    </html>
+                """,
+                to: 'devendratalhande726@gmail.com',
+                mimeType: 'text/html'
+            }
         }
     }
 }
