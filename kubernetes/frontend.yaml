@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: trainwithshubham/wanderlust-frontend-beta:v2.2
+          image: devendra532/wanderlust-frontend-beta:v1.0  # 🔹 Updated with your DockerHub image
           ports:
             - containerPort: 5173
 ---
@@ -35,4 +35,4 @@ spec:
     - port: 5173
       targetPort: 5173
       protocol: TCP
-      nodePort: 31000
+      nodePort: 31000  # 🔹 Same NodePort as before
