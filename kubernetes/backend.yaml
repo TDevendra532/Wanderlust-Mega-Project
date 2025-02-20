@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: devendra532/wanderlust-backend-beta:v1.0  # 🔹 Updated with your DockerHub image
+          image: devendra532/wanderlust-backend-beta:latest
           ports:
             - containerPort: 8080
 ---
