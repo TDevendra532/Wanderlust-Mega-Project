@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: devendra532/wanderlust-backend-beta:latest
+          image: ghcr.io/devendra532/wanderlust-backend-beta:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
 ---
@@ -31,8 +32,4 @@ spec:
   type: NodePort
   selector:
     app: backend
-  ports:
-    - port: 8080
-      targetPort: 8080
-      protocol: TCP
-      nodePort: 31100  # 🔹 Same NodePort as before
+
