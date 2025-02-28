@@ -18,7 +18,8 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: devendra532/wanderlust-frontend-beta:latest
+          image: ghcr.io/devendra532/wanderlust-frontend-beta:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 5173
 ---
@@ -31,8 +32,4 @@ spec:
   type: NodePort
   selector:
     app: frontend
-  ports:
-    - port: 5173
-      targetPort: 5173
-      protocol: TCP
-      nodePort: 31000  # 🔹 Same NodePort as before
+
