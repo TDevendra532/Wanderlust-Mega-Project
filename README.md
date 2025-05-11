@@ -7,7 +7,7 @@ WanderLust is a simple MERN travel blog website ✈ This project is aimed to hel
 
 # Developer Project Repo:
 https://github.com/krishnaacharyaa/wanderlust Project deployed on EKS
-# Youtuber Refference :
+# DevOps Youtuber Guidance :
 www.youtube.com/@TrainWithShubham
 
 # Wanderlust Mega Project End to End Implementation
